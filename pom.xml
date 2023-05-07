@@ -29,8 +29,9 @@
 
   <modelVersion>4.0.0</modelVersion>
 
+  <groupId>io.polivakha</groupId>
   <artifactId>properties-maven-plugin</artifactId>
-  <version>1.2.0-SNAPSHOT</version>
+  <version>1.0.0</version>
 
   <name>Properties Maven Plugin</name>
   <description> 
@@ -60,36 +61,21 @@
 
 
   <scm>
-    <connection>scm:git:https://github.com/mojohaus/properties-maven-plugin.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/mojohaus/properties-maven-plugin.git</developerConnection>
-    <url>https://github.com/mojohaus/properties-maven-plugin/tree/${scm.tag}</url>
+    <connection>scm:git:https://github.com/Mikhail2048/properties-maven-plugin.git</connection>
+    <url>https://github.com/Mikhail2048/properties-maven-plugin</url>
     <tag>master</tag>
   </scm>
+
   <issueManagement>
     <system>GitHub</system>
-    <url>https://github.com/mojohaus/properties-maven-plugin/issues/</url>
+    <url>https://github.com/Mikhail2048/properties-maven-plugin/issues/</url>
   </issueManagement>
-  <ciManagement>
-    <system>GitHub</system>
-    <url>https://github.com/mojohaus/properties-maven-plugin/actions/</url>
-  </ciManagement>
 
   <developers>
     <developer>
-      <id>arsenalist</id>
-      <name>Zarar Siddiqi</name>
-      <email>zarars@gmail.com</email>
-      <url>http://arsenalist.com/tech</url>
-    </developer>
-    <developer>
-      <id>krystian</id>
-      <name>Krystian Nowak</name>
-      <email>Krystian.Nowak@gmail.com</email>
-    </developer>
-    <developer>
-      <id>timothygordon32@gmail.com</id>
-      <name>Tim Gordon</name>
-      <email>timothygordon32@gmail.com</email>
+      <id>Project Lead</id>
+      <name>Polivakha Mikhail</name>
+      <email>mikhailpolivakha@gmail.com</email>
     </developer>
   </developers>
   <dependencies>
