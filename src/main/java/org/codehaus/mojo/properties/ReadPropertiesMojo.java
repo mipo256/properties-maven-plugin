@@ -47,9 +47,8 @@ import org.codehaus.plexus.util.cli.CommandLineUtils;
  * @author <a href="mailto:Krystian.Nowak@gmail.com">Krystian Nowak</a>
  */
 @Mojo( name = "read-project-properties", defaultPhase = LifecyclePhase.NONE, threadSafe = true )
-public class ReadPropertiesMojo
-    extends AbstractMojo
-{
+public class ReadPropertiesMojo extends AbstractMojo {
+
     @Parameter( defaultValue = "${project}", readonly = true, required = true )
     private MavenProject project;
 
@@ -62,14 +61,10 @@ public class ReadPropertiesMojo
     /**
      * @param files The files to set for tests.
      */
-    public void setFiles( File[] files )
-    {
-        if ( files == null )
-        {
+    public void setFiles( File[] files ) {
+        if (files == null) {
             this.files = new File[0];
-        }
-        else
-        {
+        } else {
             this.files = new File[files.length];
             System.arraycopy( files, 0, this.files, 0, files.length );
         }
