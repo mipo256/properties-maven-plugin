@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Properties;
 
@@ -36,6 +37,8 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.mojo.properties.models.FileAntPatterns;
+import org.codehaus.mojo.properties.utils.CollectionUtils;
 import org.codehaus.plexus.util.cli.CommandLineUtils;
 
 /**
@@ -57,6 +60,9 @@ public class ReadPropertiesMojo extends AbstractMojo {
      */
     @Parameter
     private File[] files = new File[0];
+
+    @Parameter(name = "includes", required = false)
+    private FileAntPatterns fileAntPatterns;
 
     /**
      * @param files The files to set for tests.
@@ -123,30 +129,27 @@ public class ReadPropertiesMojo extends AbstractMojo {
     private final PropertyResolver resolver = new PropertyResolver();
 
     /** {@inheritDoc} */
-    public void execute()
-            throws MojoExecutionException, MojoFailureException
-    {
-        if ( !skipLoadProperties )
-        {
-            checkParameters();
+    public void execute() throws MojoExecutionException, MojoFailureException {
+        if ( !skipLoadProperties ) {
+            checkThatAnyPropertiesSourceIsSet();
             loadFiles();
             loadUrls();
+
             resolveProperties();
-        }
-        else
-        {
+        } else {
             getLog().warn( "The properties are ignored" );
         }
     }
 
-    private void checkParameters()
-        throws MojoExecutionException
-    {
-        if ( files.length > 0 && urls.length > 0 )
-        {
+    private void checkThatAnyPropertiesSourceIsSet() throws MojoExecutionException {
+        if (noPropertyFileResourcesSet()) {
             throw new MojoExecutionException( "Set files or URLs but not both - otherwise "
                 + "no order of precedence can be guaranteed" );
         }
+    }
+
+    private boolean noPropertyFileResourcesSet() {
+        return files.length > 0 && urls.length > 0 && (fileAntPatterns == null || CollectionUtils.isEmpty(fileAntPatterns.getFilePatterns()));
     }
 
     private void loadFiles()
@@ -158,11 +161,8 @@ public class ReadPropertiesMojo extends AbstractMojo {
         }
     }
 
-    private void loadUrls()
-        throws MojoExecutionException
-    {
-        for ( String url : urls )
-        {
+    private void loadUrls() throws MojoExecutionException {
+        for ( String url : urls ) {
             load( new UrlResource( url ) );
         }
     }
@@ -180,33 +180,23 @@ public class ReadPropertiesMojo extends AbstractMojo {
         }
     }
 
-    private void loadProperties( Resource resource )
-        throws MojoExecutionException
-    {
-        try
-        {
+    private void loadProperties( Resource resource ) throws MojoExecutionException {
+        try {
             getLog().debug( "Loading properties from " + resource );
 
-            try ( InputStream stream = resource.getInputStream() )
-            {
-                if ( keyPrefix != null )
-                {
+            try ( InputStream stream = resource.getInputStream() ) {
+                if ( keyPrefix != null ) {
                     Properties properties = new Properties();
                     properties.load( stream );
                     Properties projectProperties = project.getProperties();
-                    for ( String key : properties.stringPropertyNames() )
-                    {
+                    for ( String key : properties.stringPropertyNames() ) {
                         projectProperties.put( keyPrefix + key, properties.get( key ) );
                     }
-                }
-                else
-                {
+                } else {
                     project.getProperties().load( stream );
                 }
             }
-        }
-        catch ( IOException e )
-        {
+        } catch ( IOException e ) {
             throw new MojoExecutionException( "Error reading properties from " + resource, e );
         }
     }
@@ -369,9 +359,7 @@ public class ReadPropertiesMojo extends AbstractMojo {
         }
     }
 
-    private static class UrlResource
-        extends Resource
-    {
+    private static class UrlResource extends Resource {
         private static final String CLASSPATH_PREFIX = "classpath:";
 
         private static final String SLASH_PREFIX = "/";
