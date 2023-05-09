@@ -1,4 +1,4 @@
-package org.codehaus.mojo.properties;
+package io.polivakha.mojo.properties;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -23,7 +23,7 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.*;
 import org.junit.Test;
-import org.apache.maven.plugin.MojoFailureException;
+
 import java.util.Properties;
 
 /**

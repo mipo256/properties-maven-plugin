@@ -1,4 +1,4 @@
-package org.codehaus.mojo.properties;
+package io.polivakha.mojo.properties;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

@@ -1,4 +1,4 @@
-package org.codehaus.mojo.properties.utils;
+package io.polivakha.mojo.properties.utils;
 
 import java.util.Collection;
 

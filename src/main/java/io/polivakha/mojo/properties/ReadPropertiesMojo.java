@@ -1,4 +1,4 @@
-package org.codehaus.mojo.properties;
+package io.polivakha.mojo.properties;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,14 +19,9 @@ package org.codehaus.mojo.properties;
  * under the License.
  */
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Properties;
 
@@ -37,8 +32,12 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
-import org.codehaus.mojo.properties.models.FileAntPatterns;
-import org.codehaus.mojo.properties.utils.CollectionUtils;
+import io.polivakha.mojo.properties.models.FileAntPatterns;
+import io.polivakha.mojo.properties.models.FileResource;
+import io.polivakha.mojo.properties.models.Resource;
+import io.polivakha.mojo.properties.models.UrlResource;
+import io.polivakha.mojo.properties.utils.CollectionUtils;
+
 import org.codehaus.plexus.util.cli.CommandLineUtils;
 
 /**
@@ -48,6 +47,7 @@ import org.codehaus.plexus.util.cli.CommandLineUtils;
  *
  * @author <a href="mailto:zarars@gmail.com">Zarar Siddiqi</a>
  * @author <a href="mailto:Krystian.Nowak@gmail.com">Krystian Nowak</a>
+ * @author Mikhail Polivakha
  */
 @Mojo( name = "read-project-properties", defaultPhase = LifecyclePhase.NONE, threadSafe = true )
 public class ReadPropertiesMojo extends AbstractMojo {
@@ -85,24 +85,6 @@ public class ReadPropertiesMojo extends AbstractMojo {
     private String[] urls = new String[0];
 
     /**
-     * Default scope for test access.
-     * 
-     * @param urls The URLs to set for tests.
-     */
-    public void setUrls( String[] urls )
-    {
-        if ( urls == null )
-        {
-            this.urls = null;
-        }
-        else
-        {
-            this.urls = new String[urls.length];
-            System.arraycopy( urls, 0, this.urls, 0, urls.length );
-        }
-    }
-
-    /**
      * If the plugin should be quiet if any of the files was not found
      */
     @Parameter( defaultValue = "false" )
@@ -134,7 +116,6 @@ public class ReadPropertiesMojo extends AbstractMojo {
             checkThatAnyPropertiesSourceIsSet();
             loadFiles();
             loadUrls();
-
             resolveProperties();
         } else {
             getLog().warn( "The properties are ignored" );
@@ -152,11 +133,8 @@ public class ReadPropertiesMojo extends AbstractMojo {
         return files.length > 0 && urls.length > 0 && (fileAntPatterns == null || CollectionUtils.isEmpty(fileAntPatterns.getFilePatterns()));
     }
 
-    private void loadFiles()
-        throws MojoExecutionException
-    {
-        for ( File file : files )
-        {
+    private void loadFiles() throws MojoExecutionException {
+        for ( File file : files ) {
             load( new FileResource( file ) );
         }
     }
@@ -167,15 +145,10 @@ public class ReadPropertiesMojo extends AbstractMojo {
         }
     }
 
-    private void load( Resource resource )
-        throws MojoExecutionException
-    {
-        if ( resource.canBeOpened() )
-        {
+    private void load( Resource resource ) throws MojoExecutionException {
+        if ( resource.canBeOpened() ) {
             loadProperties( resource );
-        }
-        else
-        {
+        } else {
             missing( resource );
         }
     }
@@ -310,126 +283,5 @@ public class ReadPropertiesMojo extends AbstractMojo {
     void setProject( MavenProject project )
     {
         this.project = project;
-    }
-
-    private static abstract class Resource
-    {
-        private InputStream stream;
-
-        public abstract boolean canBeOpened();
-
-        protected abstract InputStream openStream()
-            throws IOException;
-
-        public InputStream getInputStream()
-            throws IOException
-        {
-            if ( stream == null )
-            {
-                stream = openStream();
-            }
-            return stream;
-        }
-    }
-
-    private static class FileResource
-        extends Resource
-    {
-        private final File file;
-
-        public FileResource( File file )
-        {
-            this.file = file;
-        }
-
-        public boolean canBeOpened()
-        {
-            return file.exists();
-        }
-
-        protected InputStream openStream()
-            throws IOException
-        {
-            return new BufferedInputStream( new FileInputStream( file ) );
-        }
-
-        public String toString()
-        {
-            return "File: " + file;
-        }
-    }
-
-    private static class UrlResource extends Resource {
-        private static final String CLASSPATH_PREFIX = "classpath:";
-
-        private static final String SLASH_PREFIX = "/";
-
-        private final URL url;
-
-        private boolean isMissingClasspathResouce = false;
-
-        private String classpathUrl;
-
-        public UrlResource( String url )
-            throws MojoExecutionException
-        {
-            if ( url.startsWith( CLASSPATH_PREFIX ) )
-            {
-                String resource = url.substring( CLASSPATH_PREFIX.length() );
-                if ( resource.startsWith( SLASH_PREFIX ) )
-                {
-                    resource = resource.substring( 1 );
-                }
-                this.url = getClass().getClassLoader().getResource( resource );
-                if ( this.url == null )
-                {
-                    isMissingClasspathResouce = true;
-                    classpathUrl = url;
-                }
-            }
-            else
-            {
-                try
-                {
-                    this.url = new URL( url );
-                }
-                catch ( MalformedURLException e )
-                {
-                    throw new MojoExecutionException( "Badly formed URL " + url + " - " + e.getMessage() );
-                }
-            }
-        }
-
-        public boolean canBeOpened()
-        {
-            if ( isMissingClasspathResouce )
-            {
-                return false;
-            }
-            try
-            {
-                openStream();
-            }
-            catch ( IOException e )
-            {
-                return false;
-            }
-            return true;
-        }
-
-        protected InputStream openStream()
-            throws IOException
-        {
-            return new BufferedInputStream( url.openStream() );
-        }
-
-        public String toString()
-        {
-            if ( !isMissingClasspathResouce )
-            {
-                return "URL " + url.toString();
-            }
-            return classpathUrl;
-        }
     }
 }

@@ -1,4 +1,4 @@
-package org.codehaus.mojo.properties;
+package io.polivakha.mojo.properties;
 
 import java.io.File;
 import java.io.FileReader;

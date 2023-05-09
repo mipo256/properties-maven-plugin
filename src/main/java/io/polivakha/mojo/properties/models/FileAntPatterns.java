@@ -1,4 +1,4 @@
-package org.codehaus.mojo.properties.models;
+package io.polivakha.mojo.properties.models;
 
 import java.util.List;
 
