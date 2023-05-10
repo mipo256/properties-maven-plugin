@@ -49,7 +49,7 @@
   </licenses>
 
   <properties>
-    <mavenVersion>3.2.5</mavenVersion>
+    <mavenVersion>3.9.1</mavenVersion>
     <scmpublish.content>target/staging/${project.artifactId}</scmpublish.content>
     <project.build.outputTimestamp>2022-03-19T15:53:05Z</project.build.outputTimestamp>
   </properties>
@@ -71,6 +71,11 @@
       <id>Project Lead</id>
       <name>Polivakha Mikhail</name>
       <email>mikhailpolivakha@gmail.com</email>
+    </developer>
+    <developer>
+      <id>Contributor</id>
+      <name>Nikulin Tema</name>
+      <email>temalead@gmail.com</email>
     </developer>
   </developers>
   <dependencies>
