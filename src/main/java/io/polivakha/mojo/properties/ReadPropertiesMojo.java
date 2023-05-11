@@ -22,8 +22,11 @@ package io.polivakha.mojo.properties;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Enumeration;
+import java.nio.file.Path;
+import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -32,13 +35,12 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
-import io.polivakha.mojo.properties.models.FileAntPatterns;
+import org.codehaus.plexus.util.cli.CommandLineUtils;
+
 import io.polivakha.mojo.properties.models.FileResource;
 import io.polivakha.mojo.properties.models.Resource;
 import io.polivakha.mojo.properties.models.UrlResource;
-import io.polivakha.mojo.properties.utils.CollectionUtils;
-
-import org.codehaus.plexus.util.cli.CommandLineUtils;
+import io.polivakha.mojo.properties.utils.PathParser;
 
 /**
  * The read-project-properties goal reads property files and URLs and stores the properties as project properties. It
@@ -61,8 +63,14 @@ public class ReadPropertiesMojo extends AbstractMojo {
     @Parameter
     private File[] files = new File[0];
 
-    @Parameter(name = "includes", required = false)
-    private FileAntPatterns fileAntPatterns;
+    @Parameter(name = "includes", required = false, alias = "includes")
+    private String[] includes = new String[0];
+
+    private final PathParser pathParser;
+
+    public ReadPropertiesMojo() {
+        this.pathParser = new PathParser();
+    }
 
     /**
      * @param files The files to set for tests.
@@ -74,6 +82,10 @@ public class ReadPropertiesMojo extends AbstractMojo {
             this.files = new File[files.length];
             System.arraycopy( files, 0, this.files, 0, files.length );
         }
+    }
+
+    public void setIncludes(String[] includes) {
+        this.includes = includes;
     }
 
     /**
@@ -97,8 +109,7 @@ public class ReadPropertiesMojo extends AbstractMojo {
     @Parameter
     private String keyPrefix = null;
 
-    public void setKeyPrefix( String keyPrefix )
-    {
+    public void setKeyPrefix( String keyPrefix ) {
         this.keyPrefix = keyPrefix;
     }
 
@@ -113,29 +124,44 @@ public class ReadPropertiesMojo extends AbstractMojo {
     /** {@inheritDoc} */
     public void execute() throws MojoExecutionException, MojoFailureException {
         if ( !skipLoadProperties ) {
-            checkThatAnyPropertiesSourceIsSet();
             loadFiles();
             loadUrls();
+            loadFilesByPattern();
             resolveProperties();
         } else {
             getLog().warn( "The properties are ignored" );
         }
     }
 
-    private void checkThatAnyPropertiesSourceIsSet() throws MojoExecutionException {
-        if (noPropertyFileResourcesSet()) {
-            throw new MojoExecutionException( "Set files or URLs but not both - otherwise "
-                + "no order of precedence can be guaranteed" );
-        }
-    }
-
-    private boolean noPropertyFileResourcesSet() {
-        return files.length > 0 && urls.length > 0 && (fileAntPatterns == null || CollectionUtils.isEmpty(fileAntPatterns.getFilePatterns()));
-    }
-
     private void loadFiles() throws MojoExecutionException {
         for ( File file : files ) {
             load( new FileResource( file ) );
+        }
+    }
+
+    private void loadFilesByPattern() throws MojoExecutionException {
+        if (includes == null) {
+            return;
+        }
+
+        for (String antPattern : includes) {
+            if (antPattern == null || antPattern.isEmpty()) {
+                throw new MojoExecutionException("Provided <pattern/> element value is empty. Please, put corresponding ant path pattern in this element");
+            }
+
+            try (Stream<Path> pathStream = pathParser.streamFilesMatchingAntPath(antPattern)) {
+
+                List<FileResource> fileResources = pathStream.map(Path::toFile)
+                  .peek(it -> getLog().debug(String.format("Found potential properties file '%s' by ant path pattern : '%s'", it, antPattern)))
+                  .map(FileResource::new)
+                  .collect(Collectors.toList());
+
+                for (FileResource fileResource : fileResources) {
+                    loadProperties(fileResource);
+                }
+            } catch (IOException e) {
+                throw new MojoExecutionException("Error while traversing file tree to find properties files by ant pattern", e);
+            }
         }
     }
 
@@ -187,60 +213,38 @@ public class ReadPropertiesMojo extends AbstractMojo {
         }
     }
 
-    private void resolveProperties()
-        throws MojoExecutionException, MojoFailureException
-    {
+    private void resolveProperties() throws MojoExecutionException, MojoFailureException {
         Properties environment = loadSystemEnvironmentPropertiesWhenDefined();
         Properties projectProperties = project.getProperties();
 
-        for ( Enumeration<?> n = projectProperties.propertyNames(); n.hasMoreElements(); )
-        {
-            String k = (String) n.nextElement();
-            projectProperties.setProperty( k, getPropertyValue( k, projectProperties, environment ) );
+        for (Object key : projectProperties.keySet()) {
+            projectProperties.setProperty( (String) key, getPropertyValue( (String) key, projectProperties, environment ) );
         }
     }
 
-    private Properties loadSystemEnvironmentPropertiesWhenDefined()
-        throws MojoExecutionException
-    {
-        Properties projectProperties = project.getProperties();
+    private Properties loadSystemEnvironmentPropertiesWhenDefined() throws MojoExecutionException {
 
-        boolean useEnvVariables = false;
-        for ( Enumeration<?> n = projectProperties.propertyNames(); n.hasMoreElements(); )
-        {
-            String k = (String) n.nextElement();
-            String p = (String) projectProperties.get( k );
-            if ( p.contains( "${env." ) )
-            {
-                useEnvVariables = true;
-                break;
-            }
-        }
+        boolean useEnvVariables = project.getProperties()
+          .values()
+          .stream()
+          .anyMatch(o -> ((String) o).startsWith("${env."));
+
         Properties environment = null;
-        if ( useEnvVariables )
-        {
-            try
-            {
+        if ( useEnvVariables ) {
+            try {
                 environment = getSystemEnvVars();
-            }
-            catch ( IOException e )
-            {
+            } catch ( IOException e ) {
                 throw new MojoExecutionException( "Error getting system environment variables: ", e );
             }
         }
         return environment;
     }
 
-    private String getPropertyValue( String k, Properties p, Properties environment )
-        throws MojoFailureException
-    {
-        try
-        {
-            return resolver.getPropertyValue( k, p, environment );
-        }
-        catch ( IllegalArgumentException e )
-        {
-            throw new MojoFailureException( e.getMessage() );
+    private String getPropertyValue( String propertyName, Properties mavenPropertiesFromResource, Properties processEnvironment) throws MojoFailureException {
+        try {
+            return resolver.getPropertyValue(propertyName, mavenPropertiesFromResource, processEnvironment);
+        } catch (IllegalArgumentException e) {
+            throw new MojoFailureException(e.getMessage());
         }
     }
 
@@ -250,9 +254,7 @@ public class ReadPropertiesMojo extends AbstractMojo {
      * @return The shell environment variables, can be empty but never <code>null</code>.
      * @throws IOException If the environment variables could not be queried from the shell.
      */
-    Properties getSystemEnvVars()
-        throws IOException
-    {
+    Properties getSystemEnvVars() throws IOException {
         return CommandLineUtils.getSystemEnvVars();
     }
 
