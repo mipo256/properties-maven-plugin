@@ -49,26 +49,21 @@ class CircularDefinitionPreventer
      * @param value The values.
      * @return {@link CircularDefinitionPreventer}
      */
-    public CircularDefinitionPreventer visited( String key, String value )
-    {
+    public CircularDefinitionPreventer visited( String key, String value ) {
         entriesVisited.add( new VisitedProperty( key, value ) );
-        if ( keysUsed.contains( key ) )
-        {
+
+        if ( keysUsed.contains( key ) ) {
             circularDefinition();
-        }
-        else
-        {
+        } else {
             keysUsed.add( key );
         }
 
         return this;
     }
 
-    private void circularDefinition()
-    {
+    private void circularDefinition() {
         StringBuilder buffer = new StringBuilder( "Circular property definition: " );
-        for ( Iterator<?> iterator = entriesVisited.iterator(); iterator.hasNext(); )
-        {
+        for ( Iterator<?> iterator = entriesVisited.iterator(); iterator.hasNext(); ) {
             VisitedProperty visited = (VisitedProperty) iterator.next();
             buffer.append( visited.key ).append( "=" ).append( visited.value );
             if ( iterator.hasNext() )

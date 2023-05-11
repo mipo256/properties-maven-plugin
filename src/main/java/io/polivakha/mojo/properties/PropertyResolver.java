@@ -38,17 +38,14 @@ class PropertyResolver
      * @return resolved property value
      * @throws IllegalArgumentException when properties are circularly defined
      */
-    public String getPropertyValue( String key, Properties properties, Properties environment )
-    {
-        String value = properties.getProperty( key );
+    public String getPropertyValue(String key, Properties properties, Properties environment) {
+        String valueFromProperties = properties.getProperty(key);
 
-        ExpansionBuffer buffer = new ExpansionBuffer( value );
+        ExpansionBuffer buffer = new ExpansionBuffer(valueFromProperties);
 
-        CircularDefinitionPreventer circularDefinitionPreventer =
-            new CircularDefinitionPreventer().visited( key, value );
+        CircularDefinitionPreventer circularDefinitionPreventer = new CircularDefinitionPreventer().visited( key, valueFromProperties );
 
-        while ( buffer.hasMoreLegalPlaceholders() )
-        {
+        while ( buffer.hasMoreLegalPlaceholders() ) {
             String newKey = buffer.extractPropertyKey();
             String newValue = fromPropertiesThenSystemThenEnvironment( newKey, properties, environment );
 
@@ -60,19 +57,16 @@ class PropertyResolver
         return buffer.toString();
     }
 
-    private String fromPropertiesThenSystemThenEnvironment( String key, Properties properties, Properties environment )
-    {
+    private String fromPropertiesThenSystemThenEnvironment( String key, Properties properties, Properties environment ) {
         String value = properties.getProperty( key );
 
         // try global environment
-        if ( value == null )
-        {
+        if ( value == null ) {
             value = System.getProperty( key );
         }
 
         // try environment variable
-        if ( value == null && key.startsWith( "env." ) && environment != null )
-        {
+        if ( value == null && key.startsWith( "env." ) && environment != null ) {
             value = environment.getProperty( key.substring( 4 ) );
         }
 

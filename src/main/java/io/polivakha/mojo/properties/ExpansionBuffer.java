@@ -19,26 +19,22 @@ package io.polivakha.mojo.properties;
  * under the License.
  */
 
-class ExpansionBuffer
-{
+class ExpansionBuffer {
     private final StringBuilder resolved = new StringBuilder();
 
     private String unresolved;
 
-    public ExpansionBuffer( String unresolved )
-    {
+    public ExpansionBuffer( String unresolved ) {
         this.unresolved = unresolved != null ? unresolved : "";
     }
 
-    public boolean hasMoreLegalPlaceholders()
-    {
+    public boolean hasMoreLegalPlaceholders() {
         int prefixPos = unresolved.indexOf( "${" );
         int suffixPos = unresolved.indexOf( "}", prefixPos + 2 );
         return prefixPos >= 0 && suffixPos >= 0;
     }
 
-    public String extractPropertyKey()
-    {
+    public String extractPropertyKey() {
         advanceToNextPrefix();
 
         discardPrefix();
@@ -88,25 +84,21 @@ class ExpansionBuffer
         unresolved = unresolved.substring( propertySuffixPos + 1 );
     }
 
-    private void advanceToNextPrefix()
-    {
+    private void advanceToNextPrefix() {
         resolved.append( beforePrefix() );
     }
 
-    private void discardPrefix()
-    {
+    private void discardPrefix() {
         int propertyPrefixPos = unresolved.indexOf( "${" );
         unresolved = unresolved.substring( propertyPrefixPos + 2 );
     }
 
-    private String beforePrefix()
-    {
+    private String beforePrefix() {
         int propertyPrefixPos = unresolved.indexOf( "${" );
         return unresolved.substring( 0, propertyPrefixPos );
     }
 
-    private String beforeNextSuffix()
-    {
+    private String beforeNextSuffix() {
         int propertySuffixPos = unresolved.indexOf( "}" );
         return unresolved.substring( 0, propertySuffixPos );
     }
