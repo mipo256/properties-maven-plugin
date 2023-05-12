@@ -6,8 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -36,7 +35,8 @@ public class PropertyLogger {
     }
 
     private Set<Pair<String, String>> getNewPropertiesKeys(InputStream stream) throws IOException {
-        List<String> newProperties = IOUtils.readLines(stream, StandardCharsets.UTF_8);
+        byte[] bytes = IOUtils.toByteArray(stream);
+        List<String> newProperties = IOUtils.readLines(new InputStreamReader(new ByteArrayInputStream(bytes)));
 
         return newProperties.stream()
                 .map(property -> {
