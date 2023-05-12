@@ -28,6 +28,7 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.polivakha.mojo.properties.utils.PropertyLogger;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -67,9 +68,11 @@ public class ReadPropertiesMojo extends AbstractMojo {
     private String[] includes = new String[0];
 
     private final PathParser pathParser;
+    private final PropertyLogger propertyLogger;
 
     public ReadPropertiesMojo() {
         this.pathParser = new PathParser();
+        this.propertyLogger = new PropertyLogger();
     }
 
     /**
@@ -184,6 +187,7 @@ public class ReadPropertiesMojo extends AbstractMojo {
             getLog().debug( "Loading properties from " + resource );
 
             try ( InputStream stream = resource.getInputStream() ) {
+                propertyLogger.verifyExistedProperties( stream );
                 if ( keyPrefix != null ) {
                     Properties properties = new Properties();
                     properties.load( stream );
