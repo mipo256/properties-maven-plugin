@@ -23,12 +23,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.polivakha.mojo.properties.utils.PropertyLogger;
+import io.polivakha.mojo.properties.utils.DuplicatePropertyVerifier;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -68,11 +67,11 @@ public class ReadPropertiesMojo extends AbstractMojo {
     private String[] includes = new String[0];
 
     private final PathParser pathParser;
-    private final PropertyLogger propertyLogger;
+    private final DuplicatePropertyVerifier duplicatePropertyVerifier;
 
     public ReadPropertiesMojo() {
         this.pathParser = new PathParser();
-        this.propertyLogger = new PropertyLogger();
+        this.duplicatePropertyVerifier = new DuplicatePropertyVerifier();
     }
 
     /**
@@ -186,8 +185,8 @@ public class ReadPropertiesMojo extends AbstractMojo {
         try {
             getLog().debug( "Loading properties from " + resource );
 
+            Set<Map.Entry<Object, Object>> oldProperties = new HashSet<>(project.getProperties().entrySet());
             try ( InputStream stream = resource.getInputStream() ) {
-                propertyLogger.verifyExistedProperties( stream );
                 if ( keyPrefix != null ) {
                     Properties properties = new Properties();
                     properties.load( stream );
@@ -199,6 +198,9 @@ public class ReadPropertiesMojo extends AbstractMojo {
                     project.getProperties().load( stream );
                 }
             }
+
+            duplicatePropertyVerifier.verifyExistedProperties( oldProperties, project.getProperties(), getLog() );
+
         } catch ( IOException e ) {
             throw new MojoExecutionException( "Error reading properties from " + resource, e );
         }
