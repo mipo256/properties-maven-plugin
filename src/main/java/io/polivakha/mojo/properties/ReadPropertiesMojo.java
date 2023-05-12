@@ -27,7 +27,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.polivakha.mojo.properties.utils.DuplicatePropertyVerifier;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -67,11 +66,9 @@ public class ReadPropertiesMojo extends AbstractMojo {
     private String[] includes = new String[0];
 
     private final PathParser pathParser;
-    private final DuplicatePropertyVerifier duplicatePropertyVerifier;
 
     public ReadPropertiesMojo() {
         this.pathParser = new PathParser();
-        this.duplicatePropertyVerifier = new DuplicatePropertyVerifier();
     }
 
     /**
@@ -185,24 +182,35 @@ public class ReadPropertiesMojo extends AbstractMojo {
         try {
             getLog().debug( "Loading properties from " + resource );
 
-            Set<Map.Entry<Object, Object>> oldProperties = new HashSet<>(project.getProperties().entrySet());
             try ( InputStream stream = resource.getInputStream() ) {
                 if ( keyPrefix != null ) {
                     Properties properties = new Properties();
                     properties.load( stream );
                     Properties projectProperties = project.getProperties();
                     for ( String key : properties.stringPropertyNames() ) {
-                        projectProperties.put( keyPrefix + key, properties.get( key ) );
+                        String propertyFinalName = keyPrefix + key;
+                        checkIsPropertyAlreadyDefined(projectProperties, propertyFinalName);
+                        projectProperties.put(propertyFinalName, properties.get( key ) );
                     }
                 } else {
-                    project.getProperties().load( stream );
+                    Properties properties = new Properties();
+                    properties.load( stream );
+                    Properties projectProperties = project.getProperties();
+                    for ( String key : properties.stringPropertyNames() ) {
+                        checkIsPropertyAlreadyDefined(projectProperties, key);
+                        projectProperties.put(key, properties.get( key ) );
+                    }
                 }
             }
 
-            duplicatePropertyVerifier.verifyExistedProperties( oldProperties, project.getProperties(), getLog() );
-
         } catch ( IOException e ) {
             throw new MojoExecutionException( "Error reading properties from " + resource, e );
+        }
+    }
+
+    private void checkIsPropertyAlreadyDefined(Properties definedProperties, String newPropertyKey) {
+        if ( getLog().isWarnEnabled() && definedProperties.containsKey(newPropertyKey) ) {
+            getLog().warn( String.format("Property %s is already defined. Value was overridden in Properties", newPropertyKey) );
         }
     }
 
