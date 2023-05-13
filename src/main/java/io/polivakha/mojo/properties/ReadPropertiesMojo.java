@@ -116,7 +116,10 @@ public class ReadPropertiesMojo extends AbstractMojo {
     @Parameter( defaultValue = "false", property = "prop.skipLoadProperties" )
     private boolean skipLoadProperties;
 
-    @Parameter( defaultValue = "false", property = "logOverridingProperties")
+    /**
+     * Boolean flag that says, should the plugin log duplicated proeprties or not
+     */
+    @Parameter( defaultValue = "false", property = "logOverridingProperties", required = false)
     private boolean logOverridingProperties;
 
     public void setLogOverridingProperties(boolean logOverridingProperties) {
@@ -215,20 +218,15 @@ public class ReadPropertiesMojo extends AbstractMojo {
     }
 
     private void checkIsPropertyAlreadyDefined(Properties definedProperties, String newPropertyKey) {
-        if (logOverridingProperties && getLog().isWarnEnabled() && definedProperties.containsKey(newPropertyKey) ) {
-            getLog().warn( String.format("Property %s is already defined. Value was overridden in Properties", newPropertyKey) );
+        if (logOverridingProperties && getLog().isInfoEnabled() && definedProperties.containsKey(newPropertyKey) ) {
+            getLog().info( String.format("Property %s is already defined. Value was overridden in Properties", newPropertyKey) );
         }
     }
 
-    private void missing( Resource resource )
-        throws MojoExecutionException
-    {
-        if ( quiet )
-        {
+    private void missing( Resource resource ) throws MojoExecutionException {
+        if ( quiet ) {
             getLog().info( "Quiet processing - ignoring properties cannot be loaded from " + resource );
-        }
-        else
-        {
+        } else {
             throw new MojoExecutionException( "Properties could not be loaded from " + resource );
         }
     }
