@@ -117,12 +117,23 @@ public class ReadPropertiesMojo extends AbstractMojo {
     private boolean skipLoadProperties;
 
     /**
+     * Boolean flag that says, should the plugin log duplicated proeprties or not
+     */
+    @Parameter( defaultValue = "false", property = "logOverridingProperties", required = false)
+    private boolean logOverridingProperties;
+
+    public void setLogOverridingProperties(boolean logOverridingProperties) {
+        this.logOverridingProperties = logOverridingProperties;
+    }
+
+    /**
      * Used for resolving property placeholders.
      */
     private final PropertyResolver resolver = new PropertyResolver();
 
     /** {@inheritDoc} */
     public void execute() throws MojoExecutionException, MojoFailureException {
+        setKeyPrefix();
         if ( !skipLoadProperties ) {
             loadFiles();
             loadUrls();
@@ -184,31 +195,38 @@ public class ReadPropertiesMojo extends AbstractMojo {
             getLog().debug( "Loading properties from " + resource );
 
             try ( InputStream stream = resource.getInputStream() ) {
-                if ( keyPrefix != null ) {
-                    Properties properties = new Properties();
-                    properties.load( stream );
-                    Properties projectProperties = project.getProperties();
-                    for ( String key : properties.stringPropertyNames() ) {
-                        projectProperties.put( keyPrefix + key, properties.get( key ) );
-                    }
-                } else {
-                    project.getProperties().load( stream );
+                Properties properties = new Properties();
+                properties.load( stream );
+                Properties projectProperties = project.getProperties();
+
+                for ( String key : properties.stringPropertyNames() ) {
+                    String propertyFinalName = keyPrefix + key;
+                    checkIsPropertyAlreadyDefined(projectProperties, propertyFinalName);
+                    projectProperties.put(propertyFinalName, properties.get( key ) );
                 }
             }
+
         } catch ( IOException e ) {
             throw new MojoExecutionException( "Error reading properties from " + resource, e );
         }
     }
 
-    private void missing( Resource resource )
-        throws MojoExecutionException
-    {
-        if ( quiet )
-        {
-            getLog().info( "Quiet processing - ignoring properties cannot be loaded from " + resource );
+    private void setKeyPrefix() {
+        if ( keyPrefix == null ) {
+            keyPrefix = "";
         }
-        else
-        {
+    }
+
+    private void checkIsPropertyAlreadyDefined(Properties definedProperties, String newPropertyKey) {
+        if (logOverridingProperties && getLog().isInfoEnabled() && definedProperties.containsKey(newPropertyKey) ) {
+            getLog().info( String.format("Property %s is already defined. Value was overridden in Properties", newPropertyKey) );
+        }
+    }
+
+    private void missing( Resource resource ) throws MojoExecutionException {
+        if ( quiet ) {
+            getLog().info( "Quiet processing - ignoring properties cannot be loaded from " + resource );
+        } else {
             throw new MojoExecutionException( "Properties could not be loaded from " + resource );
         }
     }
