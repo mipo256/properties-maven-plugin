@@ -23,7 +23,7 @@
 
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>io.polivakha</groupId>
+  <groupId>tech.polivakha.maven</groupId>
   <artifactId>properties-maven-plugin</artifactId>
   <version>1.0.0</version>
 
@@ -44,7 +44,6 @@
     <license>
       <name>The Apache Software License, Version 2.0</name>
       <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <distribution>repo</distribution>
     </license>
   </licenses>
 
@@ -57,8 +56,8 @@
 
   <scm>
     <connection>scm:git:https://github.com/Mikhail2048/properties-maven-plugin.git</connection>
+    <developerConnection>scm:git:https://github.com/Mikhail2048/properties-maven-plugin.git</developerConnection>
     <url>https://github.com/Mikhail2048/properties-maven-plugin</url>
-    <tag>master</tag>
   </scm>
 
   <issueManagement>
@@ -78,6 +77,7 @@
       <email>temalead@gmail.com</email>
     </developer>
   </developers>
+
   <dependencies>
     <dependency>
       <groupId>org.springframework</groupId>
@@ -162,10 +162,71 @@
           </compilerArgs>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>3.2.1</version>
+        <executions>
+          <execution>
+            <id>attach-source</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>3.4.0</version>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 
+  <distributionManagement>
+    <snapshotRepository>
+      <id>sonatype-nexus-snapshots</id>
+      <name>Sonatype Nexus Snapshots</name>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </snapshotRepository>
+    <repository>
+      <id>sonatype-nexus-staging</id>
+      <name>Sonatype Nexus Releases</name>
+      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+    </repository>
+  </distributionManagement>
+
   <profiles>
+    <profile>
+      <id>ci-cd</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>3.0.1</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <profile>
       <id>run-its</id>
       <build>

@@ -26,7 +26,7 @@ public class PathParser {
      * Searches for all files available that match provided {@code antPathPattern}
      *
      * @param antPathPattern - ant path pattern, must not be null
-     * @return Stream of {@link Path's}, that are files (not directories), that match provided ant path.
+     * @return Stream of {@link Path}'s, that are files (not directories), that match provided ant path.
      *         It is the responsibility of the caller method to close the stream
      *
      * @throws IOException in case of any file system errors
