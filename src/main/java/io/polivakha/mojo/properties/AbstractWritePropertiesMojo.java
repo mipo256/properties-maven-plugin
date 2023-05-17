@@ -19,22 +19,16 @@ package io.polivakha.mojo.properties;
  * under the License.
  */
 
+import io.polivakha.mojo.properties.models.StoreProperties;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Properties;
 
 /**
@@ -50,11 +44,8 @@ public abstract class AbstractWritePropertiesMojo
     @Parameter(required = true, property = "properties.outputFile")
     private File outputFile;
 
-    @Parameter(property = "sort", defaultValue = "true")
+    @Parameter(property = "sort")
     private boolean sort;
-
-    @Parameter(property = "comment", defaultValue = "Properties")
-    private String comment;
 
     /**
      * @param properties {@link Properties}
@@ -63,7 +54,7 @@ public abstract class AbstractWritePropertiesMojo
      */
     protected void writeProperties(Properties properties, File file) throws MojoExecutionException {
         try {
-            storeWithoutTimestamp(properties, file, getComment());
+            storeWithoutTimestamp(new StoreProperties(properties), file);
         } catch (FileNotFoundException e) {
             getLog().error("Could not create FileOutputStream: " + file);
             throw new MojoExecutionException(e.getMessage(), e);
@@ -73,28 +64,16 @@ public abstract class AbstractWritePropertiesMojo
         }
     }
 
-    // https://github.com/apache/maven-archiver/blob/master/src/main/java/org/apache/maven/archiver/PomPropertiesUtil.java#L81
-    private void storeWithoutTimestamp(Properties properties, File outputFile, String comment) throws IOException {
-        try (PrintWriter pw = new PrintWriter(outputFile, StandardCharsets.ISO_8859_1); StringWriter sw = new StringWriter()) {
-            properties.store(sw, comment);
+    private void storeWithoutTimestamp(StoreProperties properties, File outputFile) throws IOException {
 
-            List<String> lines = new ArrayList<>();
-            try (BufferedReader r = new BufferedReader(new StringReader(sw.toString()))) {
-                r.lines()
-                        .forEach(line -> {
-                            if (line.equals('#' + comment)) {
-                                pw.println(line);
-                            }
-                            if (!line.startsWith("#")) {
-                                lines.add(line);
-                            }
-                        });
+        try (FileOutputStream fileOutputStream = new FileOutputStream(outputFile)) {
+            if (isSort()) {
+                properties.sortedStore(fileOutputStream, null);
+            } else {
+                properties.store(fileOutputStream, null);
             }
-
-            lines.stream()
-                    .sorted(isSort() ? Comparator.naturalOrder() : Comparator.reverseOrder())
-                    .forEach(pw::println);
         }
+
     }
 
     /**
@@ -138,13 +117,5 @@ public abstract class AbstractWritePropertiesMojo
 
     public void setSort(boolean sort) {
         this.sort = sort;
-    }
-
-    public String getComment() {
-        return comment;
-    }
-
-    public void setComment(String comment) {
-        this.comment = comment;
     }
 }
