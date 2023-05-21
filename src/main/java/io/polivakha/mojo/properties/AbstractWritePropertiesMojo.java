@@ -29,95 +29,68 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
+import java.util.Comparator;
+import java.util.Enumeration;
+import java.util.Map;
 import java.util.Properties;
-import java.io.BufferedReader;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * @author <a href="mailto:zarars@gmail.com">Zarar Siddiqi</a>
+ * @author Sergey Korotaev
  */
 public abstract class AbstractWritePropertiesMojo
-    extends AbstractMojo
-{
+        extends AbstractMojo {
 
-    @Parameter( defaultValue = "${project}", required = true, readonly = true )
+    @Parameter(defaultValue = "${project}", required = true, readonly = true)
     private MavenProject project;
 
-    @Parameter( required = true, property = "properties.outputFile" )
+    @Parameter(required = true, property = "properties.outputFile")
     private File outputFile;
+
+    @Parameter(property = "sort")
+    private boolean sort;
 
     /**
      * @param properties {@link Properties}
-     * @param file {@link File}
+     * @param file       {@link File}
      * @throws MojoExecutionException {@link MojoExecutionException}
      */
-    protected void writeProperties( Properties properties, File file )
-        throws MojoExecutionException
-    {
-        try
-        {
-            storeWithoutTimestamp( properties, file, "Properties" );
-        }
-        catch ( FileNotFoundException e )
-        {
-            getLog().error( "Could not create FileOutputStream: " + file );
-            throw new MojoExecutionException( e.getMessage(), e );
-        }
-        catch ( IOException e )
-        {
-            getLog().error( "Error writing properties: " + file );
-            throw new MojoExecutionException( e.getMessage(), e );
+    protected void writeProperties(Properties properties, File file) throws MojoExecutionException {
+        try {
+            storeWithoutTimestamp(new StoreProperties(properties), file);
+        } catch (FileNotFoundException e) {
+            getLog().error("Could not create FileOutputStream: " + file);
+            throw new MojoExecutionException(e.getMessage(), e);
+        } catch (IOException e) {
+            getLog().error("Error writing properties: " + file);
+            throw new MojoExecutionException(e.getMessage(), e);
         }
     }
 
-    // https://github.com/apache/maven-archiver/blob/master/src/main/java/org/apache/maven/archiver/PomPropertiesUtil.java#L81
-    private void storeWithoutTimestamp( Properties properties, File outputFile, String comments )
-        throws IOException
-    {
-        try ( PrintWriter pw = new PrintWriter( outputFile, "ISO-8859-1" ); StringWriter sw = new StringWriter() )
-        {
-            properties.store( sw, comments );
-            comments = '#' + comments;
+    private void storeWithoutTimestamp(StoreProperties properties, File outputFile) throws IOException {
 
-            List<String> lines = new ArrayList<>();
-            try ( BufferedReader r = new BufferedReader( new StringReader( sw.toString() ) ) )
-            {
-                String line;
-                while ( ( line = r.readLine() ) != null )
-                {
-                    if ( !line.startsWith( "#" ) || line.equals( comments ) )
-                    {
-                        lines.add( line );
-                    }
-                }
-            }
-
-            Collections.sort( lines );
-            for ( String l : lines )
-            {
-                pw.println( l );
+        try (FileOutputStream fileOutputStream = new FileOutputStream(outputFile)) {
+            if (isSort()) {
+                properties.sortedStore(fileOutputStream, null);
+            } else {
+                properties.store(fileOutputStream, null);
             }
         }
+
     }
 
     /**
      * @throws MojoExecutionException {@link MojoExecutionException}
      */
-    protected void validateOutputFile()
-        throws MojoExecutionException
-    {
-        if ( outputFile.isDirectory() )
-        {
-            throw new MojoExecutionException( "outputFile must be a file and not a directory" );
+    protected void validateOutputFile() throws MojoExecutionException {
+        if (outputFile.isDirectory()) {
+            throw new MojoExecutionException("outputFile must be a file and not a directory");
         }
         // ensure path exists
-        if ( outputFile.getParentFile() != null )
-        {
+        if (outputFile.getParentFile() != null) {
             outputFile.getParentFile().mkdirs();
         }
     }
@@ -125,17 +98,63 @@ public abstract class AbstractWritePropertiesMojo
     /**
      * @return {@link MavenProject}
      */
-    public MavenProject getProject()
-    {
+    public MavenProject getProject() {
         return project;
+    }
+
+    public void setProject(MavenProject project) {
+        this.project = project;
     }
 
     /**
      * @return {@link #outputFile}
      */
-    public File getOutputFile()
-    {
+    public File getOutputFile() {
         return outputFile;
     }
 
+    public void setOutputFile(File outputFile) {
+        this.outputFile = outputFile;
+    }
+
+    public boolean isSort() {
+        return sort;
+    }
+
+    public void setSort(boolean sort) {
+        this.sort = sort;
+    }
+
+    private static class StoreProperties extends Properties {
+
+        public StoreProperties(Properties defaults) {
+            this.putAll(defaults);
+        }
+
+        public void sortedStore(OutputStream out, String comments) throws IOException {
+
+            Properties sortedProps = new Properties() {
+                @Override
+                public Set<Map.Entry<Object, Object>> entrySet() {
+                    Set<Map.Entry<Object, Object>> sortedSet = new TreeSet<>(Comparator.comparing(o -> o.getKey().toString()));
+                    sortedSet.addAll(super.entrySet());
+                    return sortedSet;
+                }
+
+                @Override
+                public Set<Object> keySet() {
+                    return new TreeSet<>(super.keySet());
+                }
+
+                @Override
+                public synchronized Enumeration<Object> keys() {
+                    return Collections.enumeration(new TreeSet<>(super.keySet()));
+                }
+
+            };
+
+            sortedProps.putAll(this);
+            sortedProps.store(out, comments);
+        }
+    }
 }
