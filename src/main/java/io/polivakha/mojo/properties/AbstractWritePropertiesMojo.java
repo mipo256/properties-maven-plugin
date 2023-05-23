@@ -50,7 +50,7 @@ public abstract class AbstractWritePropertiesMojo
     @Parameter(required = true, property = "properties.outputFile")
     private File outputFile;
 
-    @Parameter(property = "sort")
+    @Parameter(property = "properties.sort")
     private boolean sort;
 
     /**
