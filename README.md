@@ -101,3 +101,53 @@ As of today, the latest version supports loading files from 3 sources:
    The order properties files, loaded by `/home/user/props/*.properties` _**is not guaranteed**_. You have only guarantee, that files, loaded
    by `/home/user/props/*.properties` can potentially override any properties from previous `<include>` tag, in case of conflict.
 
+<h3>2.3 Properties value nesting</h3>
+   This plugin also allow you to nest properties values into other properties values. Consider the following properties file:
+   ```
+   greeting.start=Hello
+   full.greeting=${greeting.start}, World!
+   ```
+   Here, as you can see, we can nest the value of `greeting.start` property into another property, called `full.greeting`. In build
+   process of maven, once the `properties-maven-plugin` will run, you would have `full.greeting` property defined with value `Hello, World!`.
+   You would also have `greeting.start` defined as maven property, obviously. Just make sure that by the time of processing `full.greeting` 
+   property you have `greeting.start` property loaded from anywhere - from URLs, maybe declared i nthe same file - it does not matter. Point
+   is it should be defined.
+
+# 3. Goal `write-project-properties`
+
+This goal allows you to snapshot **_all_** properties defined in the maven project. It will print
+not just those properties that are defined in `<properties>` tag or passed via command line, but also
+those that are defined by your parent POM, by dependency management that you bring e.t.c. This goal
+exists mainly for debugging purposes. 
+
+<h3>3.1 Common usage</h3>
+
+The very common usage of this plugin looks like this:
+
+```
+<plugin>
+   <groupId>tech.polivakha.maven</groupId>
+   <artifactId>properties-maven-plugin</artifactId>
+   <version>1.0.0</version>
+   <executions>
+      <execution>
+         <id>write-all-available-proeprties</id>
+         <phase>compile</phase>
+         <goals>
+            <goal>write-project-properties</goal>
+         </goals>
+         <configuration>
+            <outputFile>
+               /home/user/some/file.properties
+            </outputFile>
+            <sort>true</sort>
+         </configuration>
+      </execution>
+   </executions>
+</plugin>
+```
+
+Here, we specify that the properties should be written into `/home/user/some/file.properties` file. This is indicated
+by obligatory parameter `<outputFile>`. Here, we also specify that the properties should be written in alphabetic order.
+That is controlled by `<sort>` parameter. You can omit `<sort>` parameter if you want. In this case the order of
+written properties is unspecified.
