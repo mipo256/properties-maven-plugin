@@ -1,7 +1,7 @@
 # Mikhail2048's Properties Maven Plugin
 
 This is a copy of the mojohause [properties-maven-plugin](http://www.mojohaus.org/properties-maven-plugin/).
-That plugin of maven is not under active development, so I took charge. This project also is distributed over [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0.txt).
+That plugin of maven is not under active development, so we took charge. This project also is distributed over [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0.txt).
 In general, **usages of this plugin is very, very similar to one in the original version**, but with some extensions requested from users.
 
 # 1. About plugin
@@ -16,7 +16,7 @@ Let's explore each of this goals one by one.
 
 <h3>2.1 Common usage</h3>
 
-As I said, this goal is used to load properties from different sources into Maven build. The simple usage will look like this:
+As stated, this goal is used to load properties from different sources into Maven build. The simple usage will look like this:
 
 ```
 <plugin>
@@ -94,7 +94,7 @@ As of today, the latest version supports loading files from 3 sources:
        <include>/etc/service/configs/**/*.properties</include>
    </includes> 
    ```
-   Here, we specified, that any file, that has `.properties`  extension and is located at `` is a properties file that should be loaded.
+   Here, we specified, that any file, that has `.properties` extension and is located at `/home/user/props` is a properties file that should be loaded.
    Along with that, files that have `.proeprties` extension and located somewhere under `/etc/service/configs/` or in its child directories, 
    are properties files that should be loaded. 
    
@@ -110,7 +110,7 @@ As of today, the latest version supports loading files from 3 sources:
    Here, as you can see, we can nest the value of `greeting.start` property into another property, called `full.greeting`. In build
    process of maven, once the `properties-maven-plugin` will run, you would have `full.greeting` property defined with value `Hello, World!`.
    You would also have `greeting.start` defined as maven property, obviously. Just make sure that by the time of processing `full.greeting` 
-   property you have `greeting.start` property loaded from anywhere - from URLs, maybe declared i nthe same file - it does not matter. Point
+   property you have `greeting.start` property loaded from anywhere - from URLs, maybe declared in the same file - it does not matter. Point
    is it should be defined.
 
 # 3. Goal `write-project-properties`
