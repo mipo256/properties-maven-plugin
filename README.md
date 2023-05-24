@@ -102,11 +102,14 @@ As of today, the latest version supports loading files from 3 sources:
    by `/home/user/props/*.properties` can potentially override any properties from previous `<include>` tag, in case of conflict.
 
 <h3>2.3 Properties value nesting</h3>
+
 This plugin also allow you to nest properties values into other properties values. Consider the following properties file:
-```
-greeting.start=Hello
-full.greeting=${greeting.start}, World!
-```
+
+   ```
+   greeting.start=Hello
+   full.greeting=${greeting.start}, World!
+   ```
+
 Here, as you can see, we can nest the value of `greeting.start` property into another property, called `full.greeting`. In build
 process of maven, once the `properties-maven-plugin` will run, you would have `full.greeting` property defined with value `Hello, World!`.
 You would also have `greeting.start` defined as maven property, obviously. Just make sure that by the time of processing `full.greeting` 
