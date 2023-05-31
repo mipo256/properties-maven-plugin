@@ -36,8 +36,7 @@ public class WriteProjectProperties extends AbstractWritePropertiesMojo {
     /**
      * {@inheritDoc}
      */
-    public void execute()
-            throws MojoExecutionException {
+    public void execute() throws MojoExecutionException {
         validateOutputFile();
         Properties projProperties = new Properties();
         projProperties.putAll(getProject().getProperties());

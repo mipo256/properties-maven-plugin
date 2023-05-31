@@ -236,7 +236,9 @@ public class ReadPropertiesMojo extends AbstractMojo {
         Properties projectProperties = project.getProperties();
 
         for (Object key : projectProperties.keySet()) {
-            projectProperties.setProperty( (String) key, getPropertyValue( (String) key, projectProperties, environment ) );
+            if (key.equals("first.property")) {
+                projectProperties.setProperty( (String) key, getPropertyValue( (String) key, projectProperties, environment ) );
+            }
         }
     }
 
@@ -260,7 +262,7 @@ public class ReadPropertiesMojo extends AbstractMojo {
 
     private String getPropertyValue( String propertyName, Properties mavenPropertiesFromResource, Properties processEnvironment) throws MojoFailureException {
         try {
-            return resolver.getPropertyValue(propertyName, mavenPropertiesFromResource, processEnvironment);
+            return resolver.getPropertyValue(propertyName, mavenPropertiesFromResource, processEnvironment, new CircularDefinitionPreventer());
         } catch (IllegalArgumentException e) {
             throw new MojoFailureException(e.getMessage());
         }

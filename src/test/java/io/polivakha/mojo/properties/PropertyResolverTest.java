@@ -22,20 +22,22 @@ package io.polivakha.mojo.properties;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.*;
+
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import java.util.Properties;
 
+import io.polivakha.mojo.properties.exception.PropertyCircularDefinitionException;
+
 /**
  * Tests the support class that produces concrete values from a set of properties.
  */
-public class PropertyResolverTest
-{
+public class PropertyResolverTest {
     private final PropertyResolver resolver = new PropertyResolver();
 
     @Test
-    public void validPlaceholderIsResolved()
-    {
+    public void validPlaceholderIsResolved() {
         Properties properties = new Properties();
         properties.setProperty( "p1", "${p2}" );
         properties.setProperty( "p2", "value" );
@@ -48,8 +50,18 @@ public class PropertyResolverTest
     }
 
     @Test
-    public void unknownPlaceholderIsLeftAsIs()
-    {
+    public void givenPropertyContainsPlaceholders_whenContainsTwoSamePlaceholders_thenResolved() {
+        Properties properties = new Properties();
+        properties.setProperty("p1", "First : ${p2}, second : ${p2}");
+        properties.setProperty("p2", "value");
+
+        String resolved = resolver.getPropertyValue("p1", properties, new Properties());
+
+        Assertions.assertThat(resolved).isEqualTo("First : value, second : value");
+    }
+
+    @Test
+    public void unknownPlaceholderIsLeftAsIs() {
         Properties properties = new Properties();
         properties.setProperty( "p1", "${p2}" );
         properties.setProperty( "p2", "value" );
@@ -65,8 +77,7 @@ public class PropertyResolverTest
     }
 
     @Test
-    public void multipleValuesAreResolved()
-    {
+    public void multipleValuesAreResolved() {
         Properties properties = new Properties();
         properties.setProperty( "hostname", "localhost" );
         properties.setProperty( "port", "8080" );
@@ -78,8 +89,7 @@ public class PropertyResolverTest
     }
 
     @Test
-    public void malformedPlaceholderIsLeftAsIs()
-    {
+    public void malformedPlaceholderIsLeftAsIs() {
         Properties properties = new Properties();
         properties.setProperty( "p1", "${p2}" );
         properties.setProperty( "p2", "value" );
@@ -95,8 +105,7 @@ public class PropertyResolverTest
     }
 
     @Test
-    public void propertyDefinedAsItselfIsIllegal()
-    {
+    public void propertyDefinedAsItselfIsIllegal() {
         Properties properties = new Properties();
         properties.setProperty( "p1", "${p2}" );
         properties.setProperty( "p2", "value" );
@@ -106,36 +115,22 @@ public class PropertyResolverTest
 
         String value1 = resolver.getPropertyValue( "p1", properties, new Properties() );
         String value2 = resolver.getPropertyValue( "p2", properties, new Properties() );
-        String value5 = null;
-        try
-        {
-            value5 = resolver.getPropertyValue( "p5", properties, new Properties() );
-            fail();
-        }
-        catch ( IllegalArgumentException e )
-        {
-            assertThat( e.getMessage(), containsString( "p5" ) );
-        }
-        String value6 = null;
-        try
-        {
-            value6 = resolver.getPropertyValue( "p6", properties, new Properties() );
-            fail();
-        }
-        catch ( IllegalArgumentException e )
-        {
-            assertThat( e.getMessage(), containsString( "p7" ) );
-        }
 
-        assertEquals( "value", value1 );
-        assertEquals( "value", value2 );
-        assertNull( value5 );
-        assertNull( value6 );
+        Assertions.assertThat(value1).isEqualTo("value");
+        Assertions.assertThat(value2).isEqualTo("value");
+        Assertions.assertThatThrownBy(
+          () -> resolver.getPropertyValue( "p5", properties, new Properties() )
+        ).isInstanceOf(PropertyCircularDefinitionException.class);
+        Assertions.assertThatThrownBy(
+          () -> resolver.getPropertyValue( "p6", properties, new Properties() )
+        ).isInstanceOf(PropertyCircularDefinitionException.class);
+        Assertions.assertThatThrownBy(
+          () -> resolver.getPropertyValue( "p7", properties, new Properties() )
+        ).isInstanceOf(PropertyCircularDefinitionException.class);
     }
 
     @Test
-    public void valueIsObtainedFromSystemProperty()
-    {
+    public void valueIsObtainedFromSystemProperty() {
         Properties saved = System.getProperties();
         System.setProperty( "system.property", "system.value" );
 
@@ -155,8 +150,7 @@ public class PropertyResolverTest
     }
 
     @Test
-    public void valueIsObtainedFromEnvironmentProperty()
-    {
+    public void valueIsObtainedFromEnvironmentProperty() {
         Properties environment = new Properties();
         environment.setProperty( "PROPERTY", "env.value" );
 
@@ -169,8 +163,7 @@ public class PropertyResolverTest
     }
 
     @Test
-    public void missingPropertyIsTolerated()
-    {
-        assertEquals( "", resolver.getPropertyValue( "non-existent", new Properties(), null ) );
+    public void missingPropertyIsTolerated() {
+        assertNull(resolver.getPropertyValue("non-existent", new Properties(), null));
     }
 }

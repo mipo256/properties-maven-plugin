@@ -21,8 +21,14 @@ package io.polivakha.mojo.properties;
 
 import java.util.Properties;
 
-class PropertyResolver
-{
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.lang.Nullable;
+
+public class PropertyResolver {
+
+    public String getPropertyValue(String key, Properties mavenProjectProperties, Properties environment) {
+        return this.getPropertyValue(key, mavenProjectProperties, environment, new CircularDefinitionPreventer());
+    }
 
     /**
      * Retrieves a property value, replacing values like ${token} using the Properties to look them up. Shamelessly
@@ -33,37 +39,44 @@ class PropertyResolver
      * test = ${test}
      *
      * @param key property key
-     * @param properties project properties
+     * @param mavenProjectProperties project properties
      * @param environment environment variables
-     * @return resolved property value
+     * @return resolved property value, or property placeholder, if it was not resolved
      * @throws IllegalArgumentException when properties are circularly defined
      */
-    public String getPropertyValue(String key, Properties properties, Properties environment) {
-        String valueFromProperties = properties.getProperty(key);
+    public String getPropertyValue(String key, Properties mavenProjectProperties, Properties environment, CircularDefinitionPreventer circularDefinitionPreventer) {
 
-        ExpansionBuffer buffer = new ExpansionBuffer(valueFromProperties);
-
-        CircularDefinitionPreventer circularDefinitionPreventer = new CircularDefinitionPreventer().visited( key, valueFromProperties );
-
-        while ( buffer.hasMoreLegalPlaceholders() ) {
-            String newKey = buffer.extractPropertyKey();
-            String newValue = fromPropertiesThenSystemThenEnvironment( newKey, properties, environment );
-
-            circularDefinitionPreventer.visited( newKey, newValue );
-
-            buffer.add( newKey, newValue );
+        if (circularDefinitionPreventer.isPropertyAlreadyVisited(key)) {
+            circularDefinitionPreventer.throwCircularDefinitionException();
         }
 
-        return buffer.toString();
+        String rawValue = fromPropertiesThenSystemThenEnvironment(key, mavenProjectProperties, environment);
+
+        if (StringUtils.isEmpty(rawValue)) {
+            return null;
+        }
+
+        ExpansionBuffer buffer = new ExpansionBuffer(rawValue);
+        String newKey;
+
+        while ((newKey = buffer.extractNextPropertyKey()) != null) {
+            buffer.moveResolvedPartToNextProperty();
+            String newValue = getPropertyValue(newKey, mavenProjectProperties, environment, circularDefinitionPreventer.cloneWithAdditionalKey(key));
+            if (newValue == null) {
+                buffer.add("${" + newKey + "}");
+            } else {
+                buffer.add(newValue);
+            }
+        }
+
+        return buffer.getFullyResolved();
     }
 
     private String fromPropertiesThenSystemThenEnvironment( String key, Properties properties, Properties environment ) {
-        String value = properties.getProperty( key );
-
-        // try global environment
-        if ( value == null ) {
-            value = System.getProperty( key );
-        }
+        String value = StringUtils.defaultIfEmpty(
+          properties.getProperty(key),
+          System.getProperty(key)
+        );
 
         // try environment variable
         if ( value == null && key.startsWith( "env." ) && environment != null ) {
