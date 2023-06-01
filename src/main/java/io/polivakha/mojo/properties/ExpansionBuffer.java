@@ -19,87 +19,68 @@ package io.polivakha.mojo.properties;
  * under the License.
  */
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
+
 class ExpansionBuffer {
+
+    private boolean isFullyResolved;
+
     private final StringBuilder resolved = new StringBuilder();
 
+    /**
+     * RegExp pattern to locate the leftest nested property
+     */
+    private static final Pattern NESTED_PROPERTY_PATTERN = Pattern.compile("\\$\\{(.*?)}");
+
+    @NonNull
     private String unresolved;
 
-    public ExpansionBuffer( String unresolved ) {
-        this.unresolved = unresolved != null ? unresolved : "";
+    public ExpansionBuffer(String unresolved) {
+        this.unresolved = StringUtils.defaultString(unresolved);
+        this.isFullyResolved = !hasMoreLegalPlaceholders();
     }
 
-    public boolean hasMoreLegalPlaceholders() {
-        int prefixPos = unresolved.indexOf( "${" );
-        int suffixPos = unresolved.indexOf( "}", prefixPos + 2 );
-        return prefixPos >= 0 && suffixPos >= 0;
+    private boolean hasMoreLegalPlaceholders() {
+        return NESTED_PROPERTY_PATTERN.matcher(unresolved).matches();
     }
 
-    public String extractPropertyKey() {
-        advanceToNextPrefix();
-
-        discardPrefix();
-
-        String key = beforeNextSuffix();
-
-        discardToAfterNextSuffix();
-
-        return key;
-    }
-
-    public String toString()
-    {
-        return resolved.append( unresolved ).toString();
-    }
-
-    public void add( String newKey, String newValue )
-    {
-        if ( replaced( newValue ) )
-        {
-            expandFurther( newValue );
+    @Nullable
+    public String extractNextPropertyKey() {
+        String nextKeyToSearchFor = null;
+        Matcher matcher = NESTED_PROPERTY_PATTERN.matcher(unresolved);
+        if (matcher.find()) {
+            nextKeyToSearchFor = matcher.group(1);
+        } else {
+            resolved.append(unresolved);
+            isFullyResolved = true;
         }
-        else
-        {
-            skipUnresolvedPlaceholder( newKey );
+        return nextKeyToSearchFor;
+    }
+
+    public void moveResolvedPartToNextProperty() {
+        int start = unresolved.indexOf("${");
+        resolved.append(unresolved, 0, start);
+        unresolved = unresolved.substring(unresolved.indexOf("}", start) + 1);
+    }
+
+    public String getFullyResolved() {
+        if (!isFullyResolved) {
+            throw new IllegalStateException("Property value is not fully resolved yet");
         }
+        return resolved.toString();
     }
 
-    private boolean replaced( String value )
-    {
-        return value != null;
+    @Override
+    public String toString() {
+        return "ExpansionBuffer{" + "isFullyResolved=" + isFullyResolved + ", resolved=" + resolved + ", unresolved='" + unresolved + '\'' + '}';
     }
 
-    private void expandFurther( String value )
-    {
-        unresolved = value + unresolved;
-    }
-
-    private void skipUnresolvedPlaceholder( String newKey )
-    {
-        resolved.append( "${" ).append( newKey ).append( "}" );
-    }
-
-    private void discardToAfterNextSuffix()
-    {
-        int propertySuffixPos = unresolved.indexOf( "}" );
-        unresolved = unresolved.substring( propertySuffixPos + 1 );
-    }
-
-    private void advanceToNextPrefix() {
-        resolved.append( beforePrefix() );
-    }
-
-    private void discardPrefix() {
-        int propertyPrefixPos = unresolved.indexOf( "${" );
-        unresolved = unresolved.substring( propertyPrefixPos + 2 );
-    }
-
-    private String beforePrefix() {
-        int propertyPrefixPos = unresolved.indexOf( "${" );
-        return unresolved.substring( 0, propertyPrefixPos );
-    }
-
-    private String beforeNextSuffix() {
-        int propertySuffixPos = unresolved.indexOf( "}" );
-        return unresolved.substring( 0, propertySuffixPos );
+    public void add(String resolvedProperty) {
+        resolved.append(resolvedProperty);
     }
 }

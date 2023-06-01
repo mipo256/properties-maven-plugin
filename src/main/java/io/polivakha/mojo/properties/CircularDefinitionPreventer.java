@@ -19,58 +19,53 @@ package io.polivakha.mojo.properties;
  * under the License.
  */
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
-class CircularDefinitionPreventer
-{
-    private static class VisitedProperty
-    {
-        private final String key;
+import io.polivakha.mojo.properties.exception.PropertyCircularDefinitionException;
 
-        private final String value;
+public class CircularDefinitionPreventer {
 
-        private VisitedProperty( String key, String value )
-        {
-            this.key = key;
-            this.value = value;
-        }
+    private final Set<String> keysUsed;
+
+    public CircularDefinitionPreventer(Set<String> usedKeySet) {
+        this.keysUsed = usedKeySet;
     }
 
-    private final List<VisitedProperty> entriesVisited = new LinkedList<>();
-
-    private final Set<String> keysUsed = new HashSet<>();
+    public CircularDefinitionPreventer() {
+        this(new LinkedHashSet<>());
+    }
 
     /**
-     * @param key The key.
-     * @param value The values.
-     * @return {@link CircularDefinitionPreventer}
+     * Checks if property is already visited
+     * @param key - key which defines the property
+     * @return true if property was already visited during value resolution, false otherwise
      */
-    public CircularDefinitionPreventer visited( String key, String value ) {
-        entriesVisited.add( new VisitedProperty( key, value ) );
-
-        if ( keysUsed.contains( key ) ) {
-            circularDefinition();
-        } else {
-            keysUsed.add( key );
-        }
-
-        return this;
+    public boolean isPropertyAlreadyVisited(String key) {
+        return keysUsed.contains(key);
     }
 
-    private void circularDefinition() {
-        StringBuilder buffer = new StringBuilder( "Circular property definition: " );
-        for ( Iterator<?> iterator = entriesVisited.iterator(); iterator.hasNext(); ) {
-            VisitedProperty visited = (VisitedProperty) iterator.next();
-            buffer.append( visited.key ).append( "=" ).append( visited.value );
-            if ( iterator.hasNext() )
-            {
-                buffer.append( " -> " );
-            }
-        }
-        throw new IllegalArgumentException( buffer.toString() );
+    /**
+     * Check that the expanded property does not provide a circular definition.
+     * For instance:
+     * <p>
+     * some.key = ${some.property}
+     * some.property = ${some.key}
+     * <p>
+     * This is a circular properties definition
+     * @param key The key.
+     * @return {@link CircularDefinitionPreventer}
+     */
+    public CircularDefinitionPreventer cloneWithAdditionalKey( String key ) {
+        var keysUsedCopy = new LinkedHashSet<>(keysUsed);
+        keysUsedCopy.add(key);
+        return new CircularDefinitionPreventer(keysUsedCopy);
+    }
+
+    public void throwCircularDefinitionException() {
+        StringBuilder buffer = new StringBuilder( "Circular property definition detected: \n");
+        keysUsed.forEach(key -> buffer.append(key).append(" --> "));
+        buffer.append(keysUsed.stream().findFirst());
+        throw new PropertyCircularDefinitionException( buffer.toString() );
     }
 }
