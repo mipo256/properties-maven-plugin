@@ -22,7 +22,6 @@ package io.polivakha.mojo.properties;
 import java.util.Properties;
 
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.lang.Nullable;
 
 public class PropertyResolver {
 
@@ -44,7 +43,7 @@ public class PropertyResolver {
      * @return resolved property value, or property placeholder, if it was not resolved
      * @throws IllegalArgumentException when properties are circularly defined
      */
-    public String getPropertyValue(String key, Properties mavenProjectProperties, Properties environment, CircularDefinitionPreventer circularDefinitionPreventer) {
+    private String getPropertyValue(String key, Properties mavenProjectProperties, Properties environment, CircularDefinitionPreventer circularDefinitionPreventer) {
 
         if (circularDefinitionPreventer.isPropertyAlreadyVisited(key)) {
             circularDefinitionPreventer.throwCircularDefinitionException();
