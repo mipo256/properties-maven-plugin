@@ -1,4 +1,4 @@
-# Mikhail2048's Properties Maven Plugin
+# The Properties Maven Plugin
 
 This is a copy of the mojohause [properties-maven-plugin](http://www.mojohaus.org/properties-maven-plugin/).
 That plugin of maven is not under active development, so we took charge. This project also is distributed over [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0.txt).
