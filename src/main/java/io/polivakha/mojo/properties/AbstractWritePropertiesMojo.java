@@ -29,6 +29,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
@@ -93,6 +94,7 @@ public abstract class AbstractWritePropertiesMojo
         if (outputFile.getParentFile() != null) {
             outputFile.getParentFile().mkdirs();
         }
+//        getLog().info(MessageFormat.format("Writing properties into : {0}", outputFile.getPath()));
     }
 
     /**

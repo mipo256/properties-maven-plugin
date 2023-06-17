@@ -14,8 +14,7 @@ public class FileResource extends Resource {
         this.file = file;
     }
 
-    public boolean canBeOpened()
-    {
+    public boolean canBeOpened() {
         return file.exists();
     }
 
